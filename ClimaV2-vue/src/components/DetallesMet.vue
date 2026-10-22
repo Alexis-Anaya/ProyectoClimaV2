@@ -12,10 +12,23 @@ const props = defineProps({
 const emit = defineEmits(['resultado', 'error'])
 const buscando = ref(false)
 
+// Mantiene el formato de error consistente para HelloWorld.
+function emitirError(code, message) {
+  emit('error', { code, message })
+}
+
 // Consulta al recibir las coordenadas y cuando cambian; immediate cubre el montaje
 // con una ciudad ya seleccionada.
 watch(() => props.lugar, async (lugar, _, onCleanup) => {
   if (!lugar) return
+
+  buscando.value = false
+
+  // WEATHER_INVALID_COORDINATES: protege la API de coordenadas ausentes o no numéricas.
+  if (!Number.isFinite(lugar.latitud) || !Number.isFinite(lugar.longitud)) {
+    emitirError('WEATHER_INVALID_COORDINATES', 'La ciudad no contiene coordenadas válidas.')
+    return
+  }
 
   // Cancela la consulta anterior si se inicia otra búsqueda antes de terminar.
   const controller = new AbortController()
@@ -33,14 +46,19 @@ watch(() => props.lugar, async (lugar, _, onCleanup) => {
     })
 
     const respuesta = await fetch(apiUrl, { signal: controller.signal })
+    // WEATHER_HTTP_ERROR: puede deberse a parámetros inválidos, límite o indisponibilidad.
     if (!respuesta.ok) {
-      throw new Error(`No fue posible consultar el clima (HTTP ${respuesta.status}).`)
+      emitirError(
+        'WEATHER_HTTP_ERROR',
+        `Open-Meteo respondió con HTTP ${respuesta.status}.`
+      )
+      return
     }
 
     const clima = await respuesta.json()
     const actual = clima.current
 
-    // Verifica que la respuesta incluya todos los valores meteorológicos solicitados.
+    // WEATHER_INVALID_RESPONSE: la API no incluyó uno o más valores esperados.
     if (
       !actual ||
       !Number.isFinite(actual.temperature_2m) ||
@@ -49,15 +67,30 @@ watch(() => props.lugar, async (lugar, _, onCleanup) => {
       !Number.isFinite(actual.weather_code) ||
       !Number.isFinite(actual.wind_speed_10m)
     ) {
-      throw new Error('El servicio meteorológico devolvió datos incompletos.')
+      emitirError(
+        'WEATHER_INVALID_RESPONSE',
+        'Open-Meteo devolvió datos meteorológicos incompletos o con formato inesperado.'
+      )
+      return
     }
 
     // Devuelve al padre la respuesta completa, incluidas unidades, hora y zona horaria.
     emit('resultado', clima)
   } catch (error) {
-    // Ignora cancelaciones intencionales y comunica otros problemas a la interfaz.
+    // Una cancelación ocurre al cambiar de ciudad; no debe mostrarse como fallo.
     if (error instanceof Error && error.name === 'AbortError') return
-    emit('error', error instanceof Error ? error.message : 'No se pudo consultar el clima.')
+
+    // WEATHER_INVALID_RESPONSE: JSON inválido; WEATHER_NETWORK_ERROR: red, DNS o CORS.
+    if (error instanceof SyntaxError) {
+      emitirError('WEATHER_INVALID_RESPONSE', 'Open-Meteo devolvió una respuesta que no es JSON válido.')
+    } else if (error instanceof TypeError) {
+      emitirError(
+        'WEATHER_NETWORK_ERROR',
+        'No se pudo conectar con Open-Meteo; revisa la conexión, DNS o las restricciones CORS.'
+      )
+    } else {
+      emitirError('WEATHER_UNEXPECTED_ERROR', 'Ocurrió un error inesperado al consultar el clima.')
+    }
   } finally {
     if (!controller.signal.aborted) buscando.value = false
   }

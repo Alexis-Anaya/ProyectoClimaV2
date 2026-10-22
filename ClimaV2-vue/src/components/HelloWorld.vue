@@ -1,17 +1,39 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import BuscarCiudad from './BuscarCiudad.vue'
 import DetallesMet from './DetallesMet.vue'
 import InfoClima from './InfoClima.vue'
 
+// El input guarda la ciudad escrita y solicitud activa la búsqueda del geocodificador.
 const text = ref('Puebla')
-// Estado que conecta la búsqueda de ciudad, la consulta meteorológica y la vista.
 const solicitud = ref({ query: '' })
+
+// Estos estados reciben la ciudad, el clima y errores de cada etapa del proceso.
 const resultado = ref(null)
 const clima = ref(null)
 const error = ref('')
 const errorClima = ref('')
 
+// Obtiene el mismo periodo de seis horas que usa DetallesHora para elegir el fondo.
+const periodoDelDia = computed(() => {
+  const horaTexto = clima.value?.current?.time
+  const hora = Number(horaTexto?.slice(11, 13))
+
+  if (!Number.isInteger(hora) || hora < 0 || hora > 23) return null
+  if (hora >= 0 && hora < 6) return 1
+  if (hora >= 6 && hora < 12) return 2
+  if (hora >= 12 && hora < 18) return 3
+  if (hora >= 18 && hora < 24) return 4
+
+  return null
+})
+
+// Asigna una clase CSS que cambia el color de fondo para cada periodo horario.
+const claseFondo = computed(() => (
+  periodoDelDia.value ? `fondo-periodo-${periodoDelDia.value}` : 'fondo-periodo-inicial'
+))
+
+// Valida la entrada y prepara una nueva solicitud para BuscarCiudad.
 function buscarCiudad() {
   // Limpia resultados y errores previos, y valida el texto antes de buscar.
   const query = text.value.trim()
@@ -21,31 +43,35 @@ function buscarCiudad() {
   errorClima.value = ''
 
   if (!query) {
-    error.value = 'Escribe el nombre de una ciudad.'
+    // INPUT_EMPTY: puede ocurrir si se pulsa Buscar con el campo vacío o con espacios.
+    error.value = {
+      code: 'INPUT_EMPTY',
+      message: 'Escribe el nombre de una ciudad.'
+    }
     return
   }
 
   solicitud.value = { query }
 }
 
-// Recibe del componente BuscarCiudad los datos encontrados por la API.
+// Recibe la ciudad y sus coordenadas; estas activan la consulta meteorológica.
 function mostrarResultado(ciudad) {
   resultado.value = ciudad
   clima.value = null
   errorClima.value = ''
 }
 
-// Muestra en la interfaz los errores reportados por el buscador.
+// Muestra en la interfaz los errores estructurados reportados por Nominatim.
 function mostrarError(mensaje) {
   error.value = mensaje
 }
 
-// Guarda la respuesta meteorológica para entregársela al componente InfoClima.
+// Guarda el clima de Open-Meteo; el cambio también actualiza fondo y detalles.
 function mostrarClima(datos) {
   clima.value = datos
 }
 
-// Mantiene separados los errores de geocodificación y los errores del clima.
+// Mantiene separados los errores de geocodificación y los de Open-Meteo.
 function mostrarErrorClima(mensaje) {
   errorClima.value = mensaje
 }
@@ -53,6 +79,8 @@ function mostrarErrorClima(mensaje) {
 </script>
 
 <template>
+  <!-- La clase cambia el fondo de toda la página según la hora meteorológica local. -->
+  <div class="pagina" :class="claseFondo">
   <section id="center">
     <div>
       <h1>Clima Pro Version 2!</h1>
@@ -70,8 +98,10 @@ function mostrarErrorClima(mensaje) {
     @resultado="mostrarResultado"
     @error="mostrarError"
   />
-  <p v-if="error" role="alert">{{ error }}</p>
-  <p v-if="errorClima" role="alert">{{ errorClima }}</p>
+  <p v-if="error" role="alert">Error {{ error.code }}: {{ error.message }}</p>
+  <p v-if="errorClima" role="alert">
+    Error {{ errorClima.code }}: {{ errorClima.message }}
+  </p>
   <br>
   
   </section>
@@ -90,5 +120,7 @@ function mostrarErrorClima(mensaje) {
   <InfoClima :lugar="resultado" :clima="clima" />
 
   <div class="ticks"></div>
-  <section id="spacer"></section>
+  <section id="spacer"><br><p>Desarrollado como Actividad 8 para la materia de Redes y Servicios</p></section>
+  </div>
+  
 </template>

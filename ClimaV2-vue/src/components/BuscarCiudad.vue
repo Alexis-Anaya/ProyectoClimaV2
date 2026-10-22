@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 
-// Recibe la búsqueda desde HelloWorld y devuelve el resultado mediante eventos.
+// Recibe la búsqueda desde HelloWorld y devuelve datos o errores mediante eventos.
 const props = defineProps({
   solicitud: {
     type: Object,
@@ -11,6 +11,11 @@ const props = defineProps({
 
 const emit = defineEmits(['resultado', 'error'])
 const buscando = ref(false)
+
+// Centraliza el formato de error para que la interfaz siempre reciba código y explicación.
+function emitirError(code, message) {
+  emit('error', { code, message })
+}
 
 // Consulta Nominatim cuando cambia la solicitud enviada por el componente padre.
 watch(() => props.solicitud, async (solicitud, _, onCleanup) => {
@@ -35,14 +40,26 @@ watch(() => props.solicitud, async (solicitud, _, onCleanup) => {
       { signal: controller.signal }
     )
 
-    // Convierte errores HTTP y respuestas sin coincidencias en mensajes visibles.
+    // GEO_HTTP_ERROR: puede indicar límite de peticiones, bloqueo o fallo del servidor.
     if (!respuesta.ok) {
-      throw new Error(`No fue posible buscar la ciudad (HTTP ${respuesta.status}).`)
+      emitirError(
+        'GEO_HTTP_ERROR',
+        `Nominatim respondió con HTTP ${respuesta.status}.`
+      )
+      return
     }
 
     const lugares = await respuesta.json()
-    if (!Array.isArray(lugares) || lugares.length === 0) {
-      throw new Error('Ciudad no encontrada.')
+    if (!Array.isArray(lugares)) {
+      // GEO_INVALID_RESPONSE: la respuesta JSON no tiene el arreglo de lugares esperado.
+      emitirError('GEO_INVALID_RESPONSE', 'Nominatim respondió con un formato de datos inesperado.')
+      return
+    }
+
+    if (lugares.length === 0) {
+      // GEO_NOT_FOUND: el nombre no coincide con un lugar reconocido por Nominatim.
+      emitirError('GEO_NOT_FOUND', 'No se encontró una ciudad con ese nombre.')
+      return
     }
 
     const lugar = lugares[0]
@@ -50,17 +67,32 @@ watch(() => props.solicitud, async (solicitud, _, onCleanup) => {
     const longitud = Number(lugar.lon)
     const nombre = lugar.name || lugar.display_name
 
-    // Comprueba que la API haya devuelto los tres datos que necesita la vista.
+    // GEO_INVALID_RESPONSE: puede deberse a datos faltantes o a una respuesta inesperada.
     if (!nombre || !Number.isFinite(latitud) || !Number.isFinite(longitud)) {
-      throw new Error('La API devolvió datos incompletos para esta ciudad.')
+      emitirError(
+        'GEO_INVALID_RESPONSE',
+        'Nominatim no devolvió el nombre o las coordenadas en el formato esperado.'
+      )
+      return
     }
 
     // Envía al padre los datos listos para mostrarse.
     emit('resultado', { nombre, latitud, longitud })
   } catch (error) {
-    // Las peticiones canceladas son esperadas; otros errores se muestran al usuario.
+    // Una cancelación ocurre normalmente al iniciar otra búsqueda; no es un error visible.
     if (error instanceof Error && error.name === 'AbortError') return
-    emit('error', error instanceof Error ? error.message : 'No se pudo buscar la ciudad.')
+
+    // GEO_INVALID_RESPONSE: JSON inválido; GEO_NETWORK_ERROR: conexión, CORS o DNS.
+    if (error instanceof SyntaxError) {
+      emitirError('GEO_INVALID_RESPONSE', 'Nominatim devolvió una respuesta que no es JSON válido.')
+    } else if (error instanceof TypeError) {
+      emitirError(
+        'GEO_NETWORK_ERROR',
+        'No se pudo conectar con Nominatim; revisa la conexión, DNS o las restricciones CORS.'
+      )
+    } else {
+      emitirError('GEO_UNEXPECTED_ERROR', 'Ocurrió un error inesperado al buscar la ciudad.')
+    }
   } finally {
     if (!controller.signal.aborted) buscando.value = false
   }

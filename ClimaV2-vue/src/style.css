@@ -54,6 +54,32 @@ body {
   margin: 0;
 }
 
+/* Transicion suave entre los colores que representan cada bloque horario. */
+.pagina {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 500ms ease;
+}
+
+/* Los cuatro tonos pastel corresponden a los periodos 00-06, 06-12, 12-18 y 18-24. */
+.fondo-periodo-inicial,
+.fondo-periodo-1 {
+  background-color: #ff9d0079;
+}
+
+.fondo-periodo-2 {
+  background-color: #00d9ff87;
+}
+
+.fondo-periodo-3 {
+  background-color: #c800ff88;
+}
+
+.fondo-periodo-4 {
+  background-color: #0b01677a;
+}
+
 h1,
 h2 {
   font-family: var(--heading);
