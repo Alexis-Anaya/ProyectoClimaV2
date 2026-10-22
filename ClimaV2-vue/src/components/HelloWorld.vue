@@ -6,91 +6,45 @@ import vueLogo from '../assets/vue.svg'
 
 const count = ref(0)
 const text = ref('Puebla')
+
+
 </script>
 
 <template>
   <section id="center">
-    <!--<div class="hero">
-      <img :src="heroImg" class="base" width="170" height="179" alt="" />
-      <img :src="vueLogo" class="framework" alt="Vue logo" width="10"/>
-      <img :src="viteLogo" class="vite" alt="Vite logo" />
-    </div>-->
     <div>
       <h1>Clima Pro Version 2!</h1>
       <p>Ahora con <code>Vue y Vite</code> como <code>Framework Frontend Moderno</code></p>
     </div>
-    <button type="button" class="counter" @click="count--">
-      El contador es: {{ count }}
-    </button>
     <h2>Escribe el nombre de alguna ciudad aqui:</h2>
-  <input v-model="text" class="counter">
-  <!--<p>{{ text }}</p>-->
+  <section style="display: flex; flex-direction: row;">
+  <input v-model="text" class="counter" id="CiudadUsuario">
+  <p style="margin: 10px;"></p>
+  <button class="counter">Buscar</button>
+  </section>
+  <p id="Ciudad"></p>
+  
   </section>
 
   <div class="ticks"></div>
 
   <section id="next-steps">
     <div id="docs">
-      <svg class="icon" role="presentation" aria-hidden="true">
-        <use href="/icons.svg#documentation-icon"></use>
-      </svg>
-      <h2>Documentation</h2>
-      <p>Your questions, answered</p>
-      <ul>
-        <li>
-          <a href="https://vite.dev/" target="_blank">
-            <img class="logo" :src="viteLogo" alt="" />
-            Explore Vite
-          </a>
-        </li>
-        <li>
-          <a href="https://vuejs.org/" target="_blank">
-            <img class="button-icon" :src="vueLogo" alt="" />
-            Learn more
-          </a>
-        </li>
-      </ul>
+            <h1 id="ciudad">Ciudad: </h1>
+            <h1 id="error"></h1>
+            <h2 id="temperatura">Temperatura: </h2>
+            <h2 id="STermica">Sensación térmica:</h2>
+            <h2 id="humedad">Humedad:</h2>
+            <h2 id="CMeteorologica">Condición metereológica:</h2>
+            <h2 id="VViento">Velocidad del viento:</h2>
+            <h3 id="longitud">Longitud:</h3>
+            <h3 id="latitud">Latitud:</h3>
     </div>
     <div id="social">
-      <svg class="icon" role="presentation" aria-hidden="true">
-        <use href="/icons.svg#social-icon"></use>
-      </svg>
-      <h2>Connect with us</h2>
-      <p>Join the Vite community</p>
-      <ul>
-        <li>
-          <a href="https://github.com/vitejs/vite" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#github-icon"></use>
-            </svg>
-            GitHub
-          </a>
-        </li>
-        <li>
-          <a href="https://chat.vite.dev/" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#discord-icon"></use>
-            </svg>
-            Discord
-          </a>
-        </li>
-        <li>
-          <a href="https://x.com/vite_js" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#x-icon"></use>
-            </svg>
-            X.com
-          </a>
-        </li>
-        <li>
-          <a href="https://bsky.app/profile/vite.dev" target="_blank">
-            <svg class="button-icon" role="presentation" aria-hidden="true">
-              <use href="/icons.svg#bluesky-icon"></use>
-            </svg>
-            Bluesky
-          </a>
-        </li>
-      </ul>
+      <h1 id="Hora:">Ciudad: </h1>
+      <h1 id="error"></h1>
+        <h2 id="zona-horaria">Zona Horaria: </h2>
+        <h1 id="emoji">😎</h1>
     </div>
   </section>
 
