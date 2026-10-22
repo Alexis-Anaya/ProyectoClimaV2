@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import DetallesHora from './DetallesHora.vue'
 
 // Recibe del padre la ciudad seleccionada y la respuesta de Open-Meteo.
 const props = defineProps({
@@ -73,11 +74,7 @@ const descripcionClima = computed(() => {
       <h3 id="longitud">Longitud: {{ lugar?.longitud ?? '' }}°</h3>
       <h3 id="latitud">Latitud: {{ lugar?.latitud ?? '' }}°</h3>
     </div>
-    <div id="social">
-      <!-- Open-Meteo también devuelve la hora de observación y zona horaria local. -->
-      <h2>Zona horaria: {{ clima?.timezone || '' }}</h2>
-      <h2>Hora de observación: {{ clima?.current?.time || '' }}</h2>
-      <h1 id="emoji">😎</h1>
-    </div>
+    <!-- Presenta la hora y el periodo de seis horas calculado por DetallesHora. -->
+    <DetallesHora :clima="clima" />
   </section>
 </template>
